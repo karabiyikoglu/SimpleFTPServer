@@ -14,17 +14,17 @@ import java.net.Socket;
 import java.util.Calendar;
 
 public class FtpConnection implements Runnable {
-	public FtpConnection(Users kullanicilar[], Socket socket, InetAddress inetaddress) throws Exception {
-		this.kullanicilar = kullanicilar;
-		sb = new StringBuffer(256);
-		bf = new byte[512];
-		cal = Calendar.getInstance();
-		s = socket;
+	public FtpConnection(Users userArray[], Socket socket, InetAddress inetaddress) throws Exception {
+		this.users = userArray;
+		stringBuffer = new StringBuffer(256);
+		dataBuffer = new byte[512];
+		calendar = Calendar.getInstance();
+		this.socket = socket;
 		ip = inetaddress;
-		li = true;
+		loginOK = false;
 
-		if (!FTPGui.limitsizMi())
-			socket.setSoTimeout(FTPGui.zaman_Asimi());
+		if (!FTPGui.isUnlimited())
+			socket.setSoTimeout(FTPGui.getTimeOut());
 
 	}
 
@@ -38,345 +38,368 @@ public class FtpConnection implements Runnable {
 	}
 
 	synchronized void upload(int i) {
-		toplamUpload += i;
-		FTPGui.uploadyaz(String.valueOf(toplamUpload >> 10));
+		totalUpload += i;
+		FTPGui.writeUploadedInfo(String.valueOf(totalUpload >> 10));
 	}
 
 	synchronized void download(int i) {
-		toplamDownload += i;
-		FTPGui.downloadyaz(String.valueOf(toplamDownload >> 10));
+		totalDownload += i;
+		FTPGui.witeDownloadedInfo(String.valueOf(totalDownload >> 10));
 	}
 
 	public void run() {
+		ServerSocket dataServerSocket = null;
 		try {
-			okuyucu = new InputStreamReader(s.getInputStream(), "ISO-8859-9");
-			ps = new PrintStream(s.getOutputStream(), true, "ISO-8859-9");
-			ps.print("220 IK Ftp Server Hosgeldiniz .\r\n");
-
-			label0: do {
-				sb.setLength(0);
+			inputStreamReader = new InputStreamReader(socket.getInputStream(), "ISO-8859-9");
+			printStream = new PrintStream(socket.getOutputStream(), true, "ISO-8859-9");
+			printStream.print("220 IK Ftp Server Hosgeldiniz .\r\n");
+			
+			
+			boolean isCommandReceived;
+			
+			do {
+				stringBuffer.setLength(0);
+				isCommandReceived = true;
 				do {
-					int i = okuyucu.read();
-					if (i <= 0) {
-						if (sb.length() <= 0)
-							break label0;
+					int readAsciiValue = inputStreamReader.read();
+					if (readAsciiValue <= 0) {
+						if (stringBuffer.length() <= 0) {
+							isCommandReceived = false;
+						}
 						break;
 					}
-					char c = (char) i;
-					if (c == '\r') {
-						okuyucu.skip(1L);
+					char readSingleChar = (char) readAsciiValue;
+					if (readSingleChar == '\r') {
+						inputStreamReader.skip(1L);
 						break;
 					}
-					sb.append(c);
+					stringBuffer.append(readSingleChar);
 				} while (true);
-				int j = sb.length();
-				for (int i1 = j - 1; i1 >= 0 && sb.charAt(i1) == ' '; i1--)
-					sb.setLength(--j);
+				
+				if(!isCommandReceived) {
+					break;
+				}
+				
+				int j = stringBuffer.length();
+				for (int i1 = j - 1; i1 >= 0 && stringBuffer.charAt(i1) == ' '; i1--) {
+					stringBuffer.setLength(--j);
+				}
 
-				if (j == 0)
-					continue;
-				gelenKomut = sb.toString();
-				System.out.println(gelenKomut);
-				if (gelenKomut.startsWith("SYST")) {
-					ps.print("215 UNIX Type: L8\r\n");
+				if (j == 0) {
 					continue;
 				}
-				if (gelenKomut.startsWith("USER")) {
+				receivedCommand = stringBuffer.toString();
+				
+				System.out.println(receivedCommand);
+				
+				if (receivedCommand.startsWith("SYST")) {//Return system type.
+					printStream.print("215 UNIX Type: L8\r\n");
+					continue;
+				}
+				if (receivedCommand.startsWith("USER")) {//Authentication username.
 					int i = 0;
-					kulokey = false;
-					while (i < kullanicilar.length) {
-						if (gelenKomut.endsWith(kullanicilar[i].getKullanici())) {
-							java.io.File ad = new java.io.File(kullanicilar[i].getKok_klasor());
-							kokKlasor = cd = ad;
-							kokYolu = ad.getCanonicalPath();
-							kokUzunlugu = kokYolu.length();
-							ro = (!kullanicilar[i].isYazma_izni());
-							kulokey = true;
-							passi = i;
+					userOk = false;
+					while (i < users.length) {
+						if (receivedCommand.endsWith(users[i].getUsername())) {
+							java.io.File ad = new java.io.File(users[i].getRootFolder());
+							rootFolder = currentDirectory = ad;
+							rootPath = ad.getCanonicalPath();
+							rootLength = rootPath.length();
+							readOnly = (!users[i].isWritePermission());
+							userOk = true;
+							passwordIndex = i;
 							break;
 						}
 						i++;
 					}
-					if (kulokey) {
+					if (userOk) {
 
-						ps.print("331 Kullanici adi dogrulandi\r\n");
+						printStream.print("331 Username accepted\r\n");
 
-						continue;
-					} else
-						ps.print("332 Lutfen giris yapin\r\n");
+					} else {
+						printStream.print("332 Please login\r\n");
+					}
+					continue;
 
 				}
-				if (gelenKomut.startsWith("PASS")) {
-					if (gelenKomut.endsWith(kullanicilar[passi].getSifre())) {
-						ps.print("230 Sifre dogrulandi giris tamam\r\n");
-						li = true;
+				if (receivedCommand.startsWith("PASS")) {///Authentication password.
+					if (receivedCommand.endsWith(users[passwordIndex].getPassword())) {
+						printStream.print("230 Password accepted. Login OK\r\n");
+						loginOK = true;
 						continue;
 					}
 				}
-				if (!li) {
-					ps.print("550 Hata\r\n");
+				if (!loginOK) {
+					printStream.print("550 Error\r\n");
+					System.out.println("550 Error");
 					continue;
 				}
-				if (gelenKomut.startsWith("PORT")) {
-					sb.setLength(0);
+				if (receivedCommand.startsWith("PORT")) {///Specifies an address and port to which the server should connect.
+					stringBuffer.setLength(0);
 					int j1 = 5;
 					int k1 = 0;
 					for (int l1 = 0; l1 < 4; l1++) {
-						k1 = gelenKomut.indexOf(',', j1);
-						sb.append(gelenKomut.substring(j1, k1));
+						k1 = receivedCommand.indexOf(',', j1);
+						stringBuffer.append(receivedCommand.substring(j1, k1));
 						if (l1 != 3)
-							sb.append('.');
+							stringBuffer.append('.');
 						j1 = k1 + 1;
 					}
 
-					String s1 = sb.toString();
-					k1 = gelenKomut.indexOf(',', j1);
-					sb.setLength(0);
-					sb.append(Integer.toHexString(Integer.parseInt(gelenKomut.substring(j1, k1))));
+					String s1 = stringBuffer.toString();
+					k1 = receivedCommand.indexOf(',', j1);
+					stringBuffer.setLength(0);
+					stringBuffer.append(Integer.toHexString(Integer.parseInt(receivedCommand.substring(j1, k1))));
 					k1++;
-					sb.append(Integer.toHexString(Integer.parseInt(gelenKomut.substring(k1))));
-					dataSocket = new Socket(s1, Integer.parseInt(sb.toString(), 16));
-					ps.print("200 OK\r\n");
+					stringBuffer.append(Integer.toHexString(Integer.parseInt(receivedCommand.substring(k1))));
+					dataSocket = new Socket(s1, Integer.parseInt(stringBuffer.toString(), 16));
+					printStream.print("200 OK\r\n");
 					continue;
 				}
-				if (gelenKomut.startsWith("PASV")) {
-					sb.setLength(0);
-					int k = getPort();
-					sb.append(FTPGui.PA).append(k >>> 8 & 0xff).append(',');
-					sb.append(k & 0xff).append(')').append("\r\n");
-					ServerSocket serversocket = new ServerSocket(k, 10, ip);
-					ps.print(sb.toString());
-					dataSocket = serversocket.accept();
+				if (receivedCommand.startsWith("PASV")) {///Enter passive mode.
+					stringBuffer.setLength(0);
+					int dataPort = getPort();
+					stringBuffer.append(FTPGui.PA).append(dataPort >>> 8 & 0xff).append(',');
+					stringBuffer.append(dataPort & 0xff).append(')').append("\r\n");
+					dataServerSocket = new ServerSocket(dataPort, 10, ip);
+					printStream.print(stringBuffer.toString());
+					dataSocket = dataServerSocket.accept();
+					System.out.println(stringBuffer.toString());
 					continue;
 				}
-				if (gelenKomut.startsWith("LIST")) {
-					ps.print("150 OK\r\n");
+				if (receivedCommand.startsWith("LIST")) {///Returns information of a file or directory if specified, else information of the current working directory is returned.
+					printStream.print("150 OK\r\n");
 					PrintStream printstream = new PrintStream(dataSocket.getOutputStream());
-					File afile[] = cd.listFiles();
+					File afile[] = currentDirectory.listFiles();
 					int i2 = afile.length;
 					for (int j2 = 0; j2 < i2; j2++) {
 						File file9 = afile[j2];
-						sb.setLength(0);
+						stringBuffer.setLength(0);
 						if (file9.isDirectory())
-							sb.append("drwxr-xr-x   2 ikftp    server  ");
+							stringBuffer.append("drwxr-xr-x   2 ikftp    server  ");
 						else
-							sb.append("-rw-r--r--   1 ikftp    server  ");
+							stringBuffer.append("-rw-r--r--   1 ikftp    server  ");
 						String s2 = file9.isDirectory() ? "512" : String.valueOf(file9.length());
 						int l = 9 - s2.length();
 						for (int k2 = 0; k2 < l; k2++)
-							sb.append(' ');
+							stringBuffer.append(' ');
 
-						sb.append(s2).append(' ');
-						cal.setTimeInMillis(file9.lastModified());
-						sb.append(aylar[cal.get(2)]).append(' ');
-						String s3 = String.valueOf(cal.get(5));
+						stringBuffer.append(s2).append(' ');
+						calendar.setTimeInMillis(file9.lastModified());
+						stringBuffer.append(months[calendar.get(2)]).append(' ');
+						String s3 = String.valueOf(calendar.get(5));
 						if (s3.length() == 1)
-							sb.append('0');
-						sb.append(s3).append(' ').append(' ');
-						sb.append(String.valueOf(cal.get(1))).append(' ').append(file9.getName()).append("\r\n");
-						printstream.print(sb.toString());
+							stringBuffer.append('0');
+						stringBuffer.append(s3).append(' ').append(' ');
+						stringBuffer.append(String.valueOf(calendar.get(1))).append(' ').append(file9.getName()).append("\r\n");
+						printstream.print(stringBuffer.toString());
 					}
 
 					dataSocket.close();
 					dataSocket = null;
-					ps.print("226 OK\r\n");
+					printStream.print("226 OK\r\n");
 					System.gc();
 					continue;
 				}
-				if (gelenKomut.startsWith("STOR")) {
-					File file = gf(5);
-					if (ro || file == null || file.exists() && (file.isDirectory() || !file.canWrite())) {
-						ps.print("550 Dosya y�kleme izniniz yok\r\n");
+				if (receivedCommand.startsWith("STOR")) {///Accept the data and to store the data as a file at the server site
+					File file = getFile(5);
+					if (readOnly || file == null || file.exists() && (file.isDirectory() || !file.canWrite())) {
+						printStream.print("550 You do not have permission to upload file\r\n");
 					} else {
-						ps.print("150 OK\r\n");
+						printStream.print("150 OK\r\n");
 						upload(cs(dataSocket.getInputStream(), new FileOutputStream(file)));
 						dataSocket.close();
 						dataSocket = null;
-						ps.print("226 OK\r\n");
+						printStream.print("226 OK\r\n");
 					}
 					continue;
 				}
-				if (gelenKomut.startsWith("RETR")) {
-					File file1 = gf(5);
+				if (receivedCommand.startsWith("RETR")) {///Retrieve a copy of the file
+					File file1 = getFile(5);
 					if (file1 == null || !file1.exists() || file1.isDirectory() || !file1.canRead()) {
-						ps.print("550 Hata olu�tu\r\n");
+						printStream.print("550 Error occured\r\n");
 					} else {
-						ps.print("150 OK\r\n");
+						printStream.print("150 OK\r\n");
 						download(cs(new FileInputStream(file1), dataSocket.getOutputStream()));
 						dataSocket.close();
 						dataSocket = null;
-						ps.print("226 OK\r\n");
+						printStream.print("226 OK\r\n");
 					}
 					continue;
 				}
-				if (gelenKomut.startsWith("MKD")) {
-					File file2 = gf(4);
-					if (ro || file2 == null || file2.exists()) {
-						ps.print("550 Klas�r olu�turmaya izniniz yok\r\n");
+				if (receivedCommand.startsWith("MKD")) {//Make Directory
+					File file2 = getFile(4);
+					if (readOnly || file2 == null || file2.exists()) {
+						printStream.print("550 You do not have permission to make directory\r\n");
 					} else {
 						file2.mkdir();
-						ps.print("257 OK\r\n");
+						printStream.print("257 OK\r\n");
 					}
 					continue;
 				}
-				if (gelenKomut.startsWith("CWD")) {
-					File file3 = gf(4);
+				if (receivedCommand.startsWith("CWD")) {//Change working directory.
+					File file3 = getFile(4);
 					if (file3 == null || !file3.exists() || !file3.isDirectory() || !file3.canRead()) {
-						ps.print("550 Hata olu�tu\r\n");
+						printStream.print("550 Error occured\r\n");
 					} else {
-						cd = file3;
-						pwd("250");
+						currentDirectory = file3;
+						printWorkingDirectory("250");
 					}
 					continue;
 				}
-				if (gelenKomut.startsWith("SIZE")) {
-					File file4 = gf(5);
+				if (receivedCommand.startsWith("SIZE")) {//Return the size of a file.
+					File file4 = getFile(5);
 					if (file4 == null || !file4.exists() || file4.isDirectory() || !file4.canRead()) {
-						ps.print("550 Hata olu�tu\r\n");
+						printStream.print("550 Error occured\r\n");
 					} else {
-						sb.setLength(0);
-						sb.append("213 ").append(file4.length()).append("\r\n");
-						ps.print(sb.toString());
+						stringBuffer.setLength(0);
+						stringBuffer.append("213 ").append(file4.length()).append("\r\n");
+						System.out.println(stringBuffer.toString());
+						printStream.print(stringBuffer.toString());
 					}
 					continue;
 				}
-				if (gelenKomut.startsWith("CDUP")) {
-					if (!cd.equals(kokKlasor))
-						cd = cd.getParentFile();
-					pwd("250");
+				if (receivedCommand.startsWith("CDUP")) {///Change to Parent Directory.
+					if (!currentDirectory.equals(rootFolder))
+						currentDirectory = currentDirectory.getParentFile();
+					printWorkingDirectory("250");
 					continue;
 				}
-				if (gelenKomut.startsWith("DELE")) {
-					File file5 = gf(5);
-					if (ro || file5 == null || !file5.exists() || file5.isDirectory() || !file5.canWrite()) {
-						ps.print("550 Silmek i�in hakk�n�z yok\r\n");
+				if (receivedCommand.startsWith("DELE")) {//Delete file.
+					File file5 = getFile(5);
+					if (readOnly || file5 == null || !file5.exists() || file5.isDirectory() || !file5.canWrite()) {
+						printStream.print("550 You do not have permission to delete\r\n");
 					} else {
 						file5.delete();
-						ps.print("250 OK\r\n");
+						printStream.print("250 OK\r\n");
 					}
 					continue;
 				}
-				if (gelenKomut.startsWith("RMD")) {
-					File file6 = gf(4);
-					if (ro || file6 == null || !file6.exists() || !file6.isDirectory() || !file6.canWrite()
+				if (receivedCommand.startsWith("RMD")) {//Remove a directory.
+					File file6 = getFile(4);
+					if (readOnly || file6 == null || !file6.exists() || !file6.isDirectory() || !file6.canWrite()
 							|| file6.list().length != 0) {
-						ps.print("550 Klas�r silmeye hakk�n�z yok\r\n");
+						printStream.print("550 You do not have permission to delete\r\n");
 					} else {
 						file6.delete();
-						ps.print("250 OK\r\n");
+						printStream.print("250 OK\r\n");
 					}
 					continue;
 				}
-				if (gelenKomut.startsWith("PWD")) {
-					pwd("257");
+				if (receivedCommand.startsWith("PWD")) {///Print working directory. 
+					printWorkingDirectory("257");
 					continue;
 				}
-				if (gelenKomut.startsWith("TYPE")) {
-					ps.print("200 OK\r\n");
+				if (receivedCommand.startsWith("TYPE")) {///Sets the transfer mode
+					printStream.print("200 OK\r\n");
 					continue;
 				}
-				if (gelenKomut.startsWith("RNFR")) {
-					File file7 = gf(5);
-					if (ro || file7 == null || !file7.exists() || !file7.canWrite()) {
-						ps.print("550 Hata olu�tu\r\n");
-						of = null;
+				if (receivedCommand.startsWith("RNFR")) { ///Rename From
+					File file7 = getFile(5);
+					if (readOnly || file7 == null || !file7.exists() || !file7.canWrite()) {
+						printStream.print("550 Error occured\r\n");
+						oldFile = null;
 					} else {
-						of = file7;
-						ps.print("350 \r\n");
+						oldFile = file7;
+						printStream.print("350 \r\n");
 					}
 					continue;
 				}
-				if (gelenKomut.startsWith("RNTO")) {
-					File file8 = gf(5);
-					if (of == null || file8 == null || file8.exists()) {
-						ps.print("550 Hata olu�tu\r\n");
-						of = null;
+				if (receivedCommand.startsWith("RNTO")) {///Rename To
+					File file8 = getFile(5);
+					if (oldFile == null || file8 == null || file8.exists()) {
+						printStream.print("550 Error occured\r\n");
+						oldFile = null;
 					} else {
-						of.renameTo(file8);
-						of = null;
-						ps.print("250 OK\r\n");
+						oldFile.renameTo(file8);
+						oldFile = null;
+						printStream.print("250 OK\r\n");
 					}
 					continue;
 				}
-				if (gelenKomut.startsWith("QUIT")) {
-					ps.print("221 Bye.\r\n");
+				if (receivedCommand.startsWith("QUIT")) {///Disconnect
+					printStream.print("221 Bye.\r\n");
 					break;
 				}
-				ps.print("550 Hata olu�tu\r\n");
+				printStream.print("550 Error occured\r\n");
 
 			} while (true);
 		} catch (Exception exception) {
 			System.out.println(exception.getMessage());
 		} finally {
 			try {
-				if (dataSocket != null)
+				if (dataSocket != null) {
 					dataSocket.close();
-				if (s != null)
-					s.close();
+				}
+				if (socket != null) {
+					socket.close();
+				}
+				if(dataServerSocket != null) {
+					dataServerSocket.close();
+				}
 			} catch (Exception exception2) {
 			}
 			System.gc();
 		}
 	}
 
-	File gf(int i) throws Exception {
-		if (i >= gelenKomut.length())
+	File getFile(int i) throws Exception {
+		if (i >= receivedCommand.length())
 			return null;
-		String s1 = gelenKomut.substring(i);
-		File file = (new File(s1.startsWith("/") ? kokKlasor : cd, s1)).getCanonicalFile();
-		if (!file.getAbsolutePath().startsWith(kokYolu))
+		String requestedFileName = receivedCommand.substring(i);
+		File file = (new File(requestedFileName.startsWith("/") ? rootFolder : currentDirectory, requestedFileName)).getCanonicalFile();
+		if (!file.getAbsolutePath().startsWith(rootPath))
 			return null;
 		else
 			return file;
 	}
 
-	void pwd(String s1) {
-		String s2 = cd.getAbsolutePath();
-		int i = s2.length();
-		sb.setLength(0);
-		sb.append(s1).append(" \"");
-		if (i > kokUzunlugu)
-			sb.append(s2.substring(kokUzunlugu).replace('\\', '/'));
+	void printWorkingDirectory(String s1) {
+		String currentDirectoryAbsolutePath = currentDirectory.getAbsolutePath();
+		int i = currentDirectoryAbsolutePath.length();
+		stringBuffer.setLength(0);
+		stringBuffer.append(s1).append(" \"");
+		if (i > rootLength)
+			stringBuffer.append(currentDirectoryAbsolutePath.substring(rootLength).replace('\\', '/'));
 		else
-			sb.append('/');
-		sb.append('"').append("\r\n");
-		ps.print(sb.toString());
+			stringBuffer.append('/');
+		stringBuffer.append('"').append("\r\n");
+		printStream.print(stringBuffer.toString());
 	}
 
 	public int cs(InputStream inputstream, OutputStream outputstream) throws IOException {
 		int i = 0;
 		int j = 0;
-		while ((i = inputstream.read(bf, 0, 512)) > -1) {
+		while ((i = inputstream.read(dataBuffer, 0, 512)) > -1) {
 			j += i;
-			outputstream.write(bf, 0, i);
+			outputstream.write(dataBuffer, 0, i);
 		}
 		inputstream.close();
 		outputstream.close();
 		return j;
 	}
 
-	static final String aylar[] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov",
-			"Dec" };
-	static long toplamUpload;
-	static long toplamDownload;
-	StringBuffer sb;
-	byte bf[];
+	static final String months[] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov","Dec" };
+	static long totalUpload;
+	static long totalDownload;
+	StringBuffer stringBuffer;
+	byte dataBuffer[];
 	static int pnum = 5000;
-	boolean ro;
-	String gelenKomut;
-	Calendar cal;
-	Socket s;
+	boolean readOnly;
+	String receivedCommand;
+	Calendar calendar;
+	Socket socket;
 	Socket dataSocket;
 	InetAddress ip;
-	InputStreamReader okuyucu;
-	PrintStream ps;
-	File kokKlasor;
-	String kokYolu;
-	int kokUzunlugu;
-	File cd;
-	File of;
-	boolean li;
-	boolean kulokey;
-	Users kullanicilar[];
-	int passi = 0;
+	InputStreamReader inputStreamReader;
+	PrintStream printStream;
+	File rootFolder;
+	String rootPath;
+	int rootLength;
+	File currentDirectory;
+	File oldFile;
+	boolean loginOK;
+	boolean userOk;
+	Users users[];
+	int passwordIndex = 0;
 }

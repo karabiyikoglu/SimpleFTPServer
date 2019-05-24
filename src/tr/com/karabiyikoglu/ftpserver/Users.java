@@ -18,98 +18,98 @@ public class Users {
     /** Creates a new instance of Users */
     public Users() {
     }
-    public Users(String kullanici,String sifre,String kok_klasor,String yazma_izni){
-        this.kullanici = kullanici;
-        this.sifre = sifre;
-        this.kok_klasor = kok_klasor;
-        if(yazma_izni.equals("true"))
-            this.yazma_izni = true;
+    public Users(String username,String password,String rootFolder,String writePermission){
+        this.username = username;
+        this.password = password;
+        this.rootFolder = rootFolder;
+        if(writePermission.equals("true"))
+            this.writePermission = true;
         else
-            this.yazma_izni = false;
+            this.writePermission = false;
     }
 
     /**
      * Holds value of property kullanici.
      */
-    private String kullanici;
+    private String username;
 
     /**
      * Getter for property kullanici.
      * @return Value of property kullanici.
      */
-    public String getKullanici() {
-        return this.kullanici;
+    public String getUsername() {
+        return this.username;
     }
 
     /**
      * Setter for property kullanici.
-     * @param kullanici New value of property kullanici.
+     * @param username New value of property kullanici.
      */
-    public void setKullanici(String kullanici) {
-        this.kullanici = kullanici;
+    public void setUsername(String username) {
+        this.username = username;
     }
 
     /**
      * Holds value of property sifre.
      */
-    private String sifre;
+    private String password;
 
     /**
      * Getter for property sifre.
      * @return Value of property sifre.
      */
-    public String getSifre() {
-        return this.sifre;
+    public String getPassword() {
+        return this.password;
     }
 
     /**
      * Setter for property sifre.
-     * @param sifre New value of property sifre.
+     * @param password New value of property sifre.
      */
-    public void setSifre(String sifre) {
-        this.sifre = sifre;
+    public void setPassword(String password) {
+        this.password = password;
     }
 
     /**
      * Holds value of property kok_klasor.
      */
-    private String kok_klasor;
+    private String rootFolder;
 
     /**
      * Getter for property kok_klasor.
      * @return Value of property kok_klasor.
      */
-    public String getKok_klasor() {
-        return this.kok_klasor;
+    public String getRootFolder() {
+        return this.rootFolder;
     }
 
     /**
      * Setter for property kok_klasor.
-     * @param kok_klasor New value of property kok_klasor.
+     * @param rootFolder New value of property kok_klasor.
      */
-    public void setKok_klasor(String kok_klasor) {
-        this.kok_klasor = kok_klasor;
+    public void setRootFolder(String rootFolder) {
+        this.rootFolder = rootFolder;
     }
 
     /**
      * Holds value of property yazma_izni.
      */
-    private boolean yazma_izni;
+    private boolean writePermission;
 
     /**
      * Getter for property yazma_izni.
      * @return Value of property yazma_izni.
      */
-    public boolean isYazma_izni() {
-        return this.yazma_izni;
+    public boolean isWritePermission() {
+        return this.writePermission;
     }
 
     /**
      * Setter for property yazma_izni.
-     * @param yazma_izni New value of property yazma_izni.
+     * @param writePermission New value of property yazma_izni.
      */
-    public void setYazma_izni(boolean yazma_izni) {
-        this.yazma_izni = yazma_izni;
+    public void setWritePermission(boolean writePermission) {
+        this.writePermission = writePermission;
     }
 
     
