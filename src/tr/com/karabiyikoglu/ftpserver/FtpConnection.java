@@ -129,6 +129,11 @@ public class FtpConnection implements Runnable {
 						continue;
 					}
 				}
+				if (receivedCommand.startsWith("QUIT")) {///Disconnect
+					printStream.print("221 Bye.\r\n");
+					FTPGui.connectionList.remove(this);
+					break;
+				}
 				if (!loginOK) {
 					printStream.print("550 Error\r\n");
 					System.out.println("550 Error");
@@ -317,10 +322,6 @@ public class FtpConnection implements Runnable {
 					}
 					continue;
 				}
-				if (receivedCommand.startsWith("QUIT")) {///Disconnect
-					printStream.print("221 Bye.\r\n");
-					break;
-				}
 				printStream.print("550 Error occured\r\n");
 
 			} while (true);
@@ -377,6 +378,33 @@ public class FtpConnection implements Runnable {
 		inputstream.close();
 		outputstream.close();
 		return j;
+	}
+	
+	public void stopConnection(){
+		if(printStream != null) {
+			printStream.close();
+		}
+		if(inputStreamReader != null) {
+			try {
+				inputStreamReader.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		if(dataSocket != null) {
+			try {
+				dataSocket.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		if(socket != null) {
+			try {
+				socket.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
 	}
 
 	static final String months[] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov","Dec" };

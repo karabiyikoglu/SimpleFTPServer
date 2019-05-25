@@ -12,11 +12,15 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.List;
 import java.util.StringTokenizer;
 import java.util.Vector;
 
 public class FTPGui extends javax.swing.JFrame implements Runnable {
+	
+	public static List<FtpConnection> connectionList = new ArrayList<>();
 
 	/**
 	 * 
@@ -838,6 +842,10 @@ public class FTPGui extends javax.swing.JFrame implements Runnable {
 		internetmi.setEnabled(true);
 		urlLabel.setText("Stopped");
 		serverThread = null;
+		for(FtpConnection ftpConnection : connectionList) {
+			ftpConnection.stopConnection();
+		}
+		connectionList.removeAll(connectionList);
 	}
 
 	public void loadUsers() {
@@ -985,7 +993,9 @@ public class FTPGui extends javax.swing.JFrame implements Runnable {
 				} catch (IOException excep) {
 					System.out.println("Bir \"exception\" olustu ...");
 				}
-				(new Thread(new FtpConnection(users, socket1, inetaddress))).start();
+				FtpConnection newConnection = new FtpConnection(users, socket1, inetaddress);
+				connectionList.add(newConnection);
+				(new Thread(newConnection)).start();
 			} while (true);
 		}catch(BindException exception) {
 			javax.swing.JOptionPane.showMessageDialog(this, "Choose different port(greater than 1023) : "+exception.getMessage(), "İK Ftp Server", 0);
