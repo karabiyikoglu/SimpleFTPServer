@@ -14,9 +14,11 @@ import java.net.Socket;
 import java.util.Calendar;
 import java.util.List;
 
+import tr.com.karabiyikoglu.ftpserver.enums.EnumFTPCommand;
+
 public class FtpConnection implements Runnable {
 	
-	public FtpConnection(List<User> userList, Socket socket, InetAddress inetaddress) throws Exception {
+	public FtpConnection(List<User> userList, Socket socket, InetAddress inetaddress,int timeout) throws Exception {
 		this.users = userList;
 		stringBuffer = new StringBuffer(256);
 		dataBuffer = new byte[512];
@@ -25,8 +27,9 @@ public class FtpConnection implements Runnable {
 		ip = inetaddress;
 		loginOK = false;
 
-		if (!FTPGui.isUnlimited())
-			socket.setSoTimeout(FTPGui.getTimeOut());
+		if (timeout > 0) {
+			socket.setSoTimeout(timeout);
+		}
 
 	}
 
@@ -54,7 +57,7 @@ public class FtpConnection implements Runnable {
 		try {
 			inputStreamReader = new InputStreamReader(socket.getInputStream(), "ISO-8859-9");
 			printStream = new PrintStream(socket.getOutputStream(), true, "ISO-8859-9");
-			printStream.print("220 IK Ftp Server Hosgeldiniz .\r\n");
+			sendResponseToClient("220 IK Ftp Server Hosgeldiniz .\r\n");
 			
 			boolean isCommandReceived;
 			
@@ -93,11 +96,13 @@ public class FtpConnection implements Runnable {
 				
 				System.out.println(receivedCommand);
 				
-				if (receivedCommand.startsWith("SYST")) {//Return system type.
-					printStream.print("215 UNIX Type: L8\r\n");
+				EnumFTPCommand ftpCommand = EnumFTPCommand.findFTPCommand(receivedCommand);
+				
+				if (EnumFTPCommand.SYST == ftpCommand) {//Return system type.
+					sendResponseToClient("215 UNIX Type: L8\r\n");
 					continue;
 				}
-				if (receivedCommand.startsWith("USER")) {//Authentication username.
+				if (EnumFTPCommand.USER == ftpCommand) {//Authentication username.
 					userOk = false;
 					loggedUser = null;
 					for(User user : users) {
@@ -116,32 +121,32 @@ public class FtpConnection implements Runnable {
 					
 					if (userOk) {
 
-						printStream.print("331 Username accepted\r\n");
+						sendResponseToClient("331 Username accepted\r\n");
 
 					} else {
-						printStream.print("332 Please login\r\n");
+						sendResponseToClient("332 Please login\r\n");
 					}
 					continue;
 
 				}
-				if (receivedCommand.startsWith("PASS")) {///Authentication password.
+				if (EnumFTPCommand.PASS == ftpCommand) {///Authentication password.
 					if (loggedUser != null && receivedCommand.endsWith(loggedUser.getPassword())) {
-						printStream.print("230 Password accepted. Login OK\r\n");
+						sendResponseToClient("230 Password accepted. Login OK\r\n");
 						loginOK = true;
 						continue;
 					}
 				}
-				if (receivedCommand.startsWith("QUIT")) {///Disconnect
-					printStream.print("221 Bye.\r\n");
+				if (EnumFTPCommand.QUIT == ftpCommand) {///Disconnect
+					sendResponseToClient("221 Bye.\r\n");
 					ActiveFtpConnections.removeConnection(this);
 					break;
 				}
 				if (!loginOK) {
-					printStream.print("550 Error\r\n");
+					sendResponseToClient("550 Error\r\n");
 					System.out.println("550 Error");
 					continue;
 				}
-				if (receivedCommand.startsWith("PORT")) {///Specifies an address and port to which the server should connect.
+				if (EnumFTPCommand.PORT == ftpCommand) {///Specifies an address and port to which the server should connect.
 					stringBuffer.setLength(0);
 					int j1 = 5;
 					int k1 = 0;
@@ -160,23 +165,23 @@ public class FtpConnection implements Runnable {
 					k1++;
 					stringBuffer.append(Integer.toHexString(Integer.parseInt(receivedCommand.substring(k1))));
 					dataSocket = new Socket(s1, Integer.parseInt(stringBuffer.toString(), 16));
-					printStream.print("200 OK\r\n");
+					sendResponseToClient("200 OK\r\n");
 					continue;
 				}
-				if (receivedCommand.startsWith("PASV")) {///Enter passive mode.
+				if (EnumFTPCommand.PASV == ftpCommand) {///Enter passive mode.
 					stringBuffer.setLength(0);
 					int dataPort = getPort();
 					stringBuffer.append(FTPGui.PA).append(dataPort >>> 8 & 0xff).append(',');
 					stringBuffer.append(dataPort & 0xff).append(')').append("\r\n");
 					dataServerSocket = new ServerSocket(dataPort, 10, ip);
-					printStream.print(stringBuffer.toString());
+					sendResponseToClient(stringBuffer.toString());
 					dataSocket = dataServerSocket.accept();
 					System.out.println(stringBuffer.toString());
 					continue;
 				}
-				if (receivedCommand.startsWith("LIST")) {///Returns information of a file or directory if specified, else information of the current working directory is returned.
-					printStream.print("150 OK\r\n");
-					PrintStream printstream = new PrintStream(dataSocket.getOutputStream());
+				if (EnumFTPCommand.LIST == ftpCommand) {///Returns information of a file or directory if specified, else information of the current working directory is returned.
+					sendResponseToClient("150 OK\r\n");
+					PrintStream printDataStream = new PrintStream(dataSocket.getOutputStream());
 					File afile[] = currentDirectory.listFiles();
 					int i2 = afile.length;
 					for (int j2 = 0; j2 < i2; j2++) {
@@ -199,132 +204,132 @@ public class FtpConnection implements Runnable {
 							stringBuffer.append('0');
 						stringBuffer.append(s3).append(' ').append(' ');
 						stringBuffer.append(String.valueOf(calendar.get(1))).append(' ').append(file9.getName()).append("\r\n");
-						printstream.print(stringBuffer.toString());
+						sendResponseToClient(printDataStream, stringBuffer.toString());
 					}
-
+					printDataStream.close();
 					dataSocket.close();
 					dataSocket = null;
-					printStream.print("226 OK\r\n");
+					sendResponseToClient("226 OK\r\n");
 					System.gc();
 					continue;
 				}
-				if (receivedCommand.startsWith("STOR")) {///Accept the data and to store the data as a file at the server site
+				if (EnumFTPCommand.STOR == ftpCommand) {///Accept the data and to store the data as a file at the server site
 					File file = getFile(5);
 					if (readOnly || file == null || file.exists() && (file.isDirectory() || !file.canWrite())) {
-						printStream.print("550 You do not have permission to upload file\r\n");
+						sendResponseToClient("550 You do not have permission to upload file\r\n");
 					} else {
-						printStream.print("150 OK\r\n");
+						sendResponseToClient("150 OK\r\n");
 						upload(cs(dataSocket.getInputStream(), new FileOutputStream(file)));
 						dataSocket.close();
 						dataSocket = null;
-						printStream.print("226 OK\r\n");
+						sendResponseToClient("226 OK\r\n");
 					}
 					continue;
 				}
-				if (receivedCommand.startsWith("RETR")) {///Retrieve a copy of the file
+				if (EnumFTPCommand.RETR == ftpCommand) {///Retrieve a copy of the file
 					File file1 = getFile(5);
 					if (file1 == null || !file1.exists() || file1.isDirectory() || !file1.canRead()) {
-						printStream.print("550 Error occured\r\n");
+						sendResponseToClient("550 Error occured\r\n");
 					} else {
-						printStream.print("150 OK\r\n");
+						sendResponseToClient("150 OK\r\n");
 						download(cs(new FileInputStream(file1), dataSocket.getOutputStream()));
 						dataSocket.close();
 						dataSocket = null;
-						printStream.print("226 OK\r\n");
+						sendResponseToClient("226 OK\r\n");
 					}
 					continue;
 				}
-				if (receivedCommand.startsWith("MKD")) {//Make Directory
+				if (EnumFTPCommand.MKD == ftpCommand) {//Make Directory
 					File file2 = getFile(4);
 					if (readOnly || file2 == null || file2.exists()) {
-						printStream.print("550 You do not have permission to make directory\r\n");
+						sendResponseToClient("550 You do not have permission to make directory\r\n");
 					} else {
 						file2.mkdir();
-						printStream.print("257 OK\r\n");
+						sendResponseToClient("257 OK\r\n");
 					}
 					continue;
 				}
-				if (receivedCommand.startsWith("CWD")) {//Change working directory.
+				if (EnumFTPCommand.CWD == ftpCommand) {//Change working directory.
 					File file3 = getFile(4);
 					if (file3 == null || !file3.exists() || !file3.isDirectory() || !file3.canRead()) {
-						printStream.print("550 Error occured\r\n");
+						sendResponseToClient("550 Error occured\r\n");
 					} else {
 						currentDirectory = file3;
 						printWorkingDirectory("250");
 					}
 					continue;
 				}
-				if (receivedCommand.startsWith("SIZE")) {//Return the size of a file.
+				if (EnumFTPCommand.SIZE == ftpCommand) {//Return the size of a file.
 					File file4 = getFile(5);
 					if (file4 == null || !file4.exists() || file4.isDirectory() || !file4.canRead()) {
-						printStream.print("550 Error occured\r\n");
+						sendResponseToClient("550 Error occured\r\n");
 					} else {
 						stringBuffer.setLength(0);
 						stringBuffer.append("213 ").append(file4.length()).append("\r\n");
 						System.out.println(stringBuffer.toString());
-						printStream.print(stringBuffer.toString());
+						sendResponseToClient(stringBuffer.toString());
 					}
 					continue;
 				}
-				if (receivedCommand.startsWith("CDUP")) {///Change to Parent Directory.
+				if (EnumFTPCommand.CDUP == ftpCommand) {///Change to Parent Directory.
 					if (!currentDirectory.equals(rootFolder))
 						currentDirectory = currentDirectory.getParentFile();
 					printWorkingDirectory("250");
 					continue;
 				}
-				if (receivedCommand.startsWith("DELE")) {//Delete file.
+				if (EnumFTPCommand.DELE == ftpCommand) {//Delete file.
 					File file5 = getFile(5);
 					if (readOnly || file5 == null || !file5.exists() || file5.isDirectory() || !file5.canWrite()) {
-						printStream.print("550 You do not have permission to delete\r\n");
+						sendResponseToClient("550 You do not have permission to delete\r\n");
 					} else {
 						file5.delete();
-						printStream.print("250 OK\r\n");
+						sendResponseToClient("250 OK\r\n");
 					}
 					continue;
 				}
-				if (receivedCommand.startsWith("RMD")) {//Remove a directory.
+				if (EnumFTPCommand.RMD == ftpCommand) {//Remove a directory.
 					File file6 = getFile(4);
 					if (readOnly || file6 == null || !file6.exists() || !file6.isDirectory() || !file6.canWrite()
 							|| file6.list().length != 0) {
-						printStream.print("550 You do not have permission to delete\r\n");
+						sendResponseToClient("550 You do not have permission to delete\r\n");
 					} else {
 						file6.delete();
-						printStream.print("250 OK\r\n");
+						sendResponseToClient("250 OK\r\n");
 					}
 					continue;
 				}
-				if (receivedCommand.startsWith("PWD")) {///Print working directory. 
+				if (EnumFTPCommand.PWD == ftpCommand) {///Print working directory. 
 					printWorkingDirectory("257");
 					continue;
 				}
-				if (receivedCommand.startsWith("TYPE")) {///Sets the transfer mode
-					printStream.print("200 OK\r\n");
+				if (EnumFTPCommand.TYPE == ftpCommand) {///Sets the transfer mode
+					sendResponseToClient("200 OK\r\n");
 					continue;
 				}
-				if (receivedCommand.startsWith("RNFR")) { ///Rename From
+				if (EnumFTPCommand.RNFR == ftpCommand) { ///Rename From
 					File file7 = getFile(5);
 					if (readOnly || file7 == null || !file7.exists() || !file7.canWrite()) {
-						printStream.print("550 Error occured\r\n");
+						sendResponseToClient("550 Error occured\r\n");
 						oldFile = null;
 					} else {
 						oldFile = file7;
-						printStream.print("350 \r\n");
+						sendResponseToClient("350 \r\n");
 					}
 					continue;
 				}
-				if (receivedCommand.startsWith("RNTO")) {///Rename To
+				if (EnumFTPCommand.RNTO == ftpCommand) {///Rename To
 					File file8 = getFile(5);
 					if (oldFile == null || file8 == null || file8.exists()) {
-						printStream.print("550 Error occured\r\n");
+						sendResponseToClient("550 Error occured\r\n");
 						oldFile = null;
 					} else {
 						oldFile.renameTo(file8);
 						oldFile = null;
-						printStream.print("250 OK\r\n");
+						sendResponseToClient("250 OK\r\n");
 					}
 					continue;
 				}
-				printStream.print("550 Error occured\r\n");
+				sendResponseToClient("550 Error occured\r\n");
 
 			} while (true);
 		} catch (Exception exception) {
@@ -367,7 +372,16 @@ public class FtpConnection implements Runnable {
 		else
 			stringBuffer.append('/');
 		stringBuffer.append('"').append("\r\n");
-		printStream.print(stringBuffer.toString());
+		sendResponseToClient(stringBuffer.toString());
+	}
+	
+	private void sendResponseToClient(String response) {
+		sendResponseToClient(printStream,response);
+	}
+	
+	private void sendResponseToClient(PrintStream prntStream,String response) {
+		System.err.print(response);
+		prntStream.print(response);
 	}
 
 	public int cs(InputStream inputstream, OutputStream outputstream) throws IOException {

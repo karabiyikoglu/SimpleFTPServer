@@ -116,30 +116,31 @@ public class FTPGui extends javax.swing.JFrame implements Runnable {
 		setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 		setTitle("IK Ftp Server");
 		setResizable(false);
-		jTabbedPane1.addChangeListener(new javax.swing.event.ChangeListener() {
-			public void stateChanged(javax.swing.event.ChangeEvent evt) {
-				jTabbedPane1StateChanged(evt);
-			}
+		
+		
+		jTabbedPane1.addChangeListener((evt) -> {
+			jTabbedPane1StateChanged(evt);
 		});
+		
+		
 
 		jPanel1.setLayout(null);
 
 		btnStart.setText("Start");
-		btnStart.addActionListener(new java.awt.event.ActionListener() {
-			public void actionPerformed(java.awt.event.ActionEvent evt) {
-				startActionPerformed(evt);
-			}
+		
+		btnStart.addActionListener((evt) -> {
+			startActionPerformed(evt);
 		});
-
+		
 		jPanel1.add(btnStart);
 		btnStart.setBounds(70, 170, 120, 50);
 
 		btnStop.setText("Stop");
 		btnStop.setEnabled(false);
-		btnStop.addActionListener(new java.awt.event.ActionListener() {
-			public void actionPerformed(java.awt.event.ActionEvent evt) {
-				stopActionPerformed(evt);
-			}
+		
+		btnStop.addActionListener((evt) ->{
+			stopActionPerformed(evt);
+
 		});
 
 		jPanel1.add(btnStop);
@@ -215,10 +216,8 @@ public class FTPGui extends javax.swing.JFrame implements Runnable {
 		jPanel2.setLayout(null);
 
 		jPanel2.setToolTipText("Users");
-		cmbUserList.addItemListener(new java.awt.event.ItemListener() {
-			public void itemStateChanged(java.awt.event.ItemEvent evt) {
-				userListItemStateChanged(evt);
-			}
+		cmbUserList.addItemListener((evt)->{
+			userListItemStateChanged(evt);
 		});
 
 		jPanel2.add(cmbUserList);
@@ -237,10 +236,8 @@ public class FTPGui extends javax.swing.JFrame implements Runnable {
 		txtRootFolder.setBounds(150, 180, 160, 20);
 
 		btnBrowse.setText("Browse");
-		btnBrowse.addActionListener(new java.awt.event.ActionListener() {
-			public void actionPerformed(java.awt.event.ActionEvent evt) {
-				browseActionPerformed(evt);
-			}
+		btnBrowse.addActionListener((evt)->{
+			browseActionPerformed(evt);
 		});
 
 		jPanel2.add(btnBrowse);
@@ -272,20 +269,16 @@ public class FTPGui extends javax.swing.JFrame implements Runnable {
 		jLabel8.setBounds(14, 210, 200, 20);
 
 		saveButton.setText("Save");
-		saveButton.addActionListener(new java.awt.event.ActionListener() {
-			public void actionPerformed(java.awt.event.ActionEvent evt) {
-				saveActionPerformed(evt);
-			}
+		saveButton.addActionListener((evt)->{
+			saveActionPerformed(evt);
 		});
 
 		jPanel2.add(saveButton);
 		saveButton.setBounds(120, 270, 80, 23);
 
 		deleteButton.setText("Delete");
-		deleteButton.addActionListener(new java.awt.event.ActionListener() {
-			public void actionPerformed(java.awt.event.ActionEvent evt) {
-				deleteButonActionPerformed(evt);
-			}
+		deleteButton.addActionListener((evt) -> {
+			deleteButonActionPerformed(evt);
 		});
 
 		jPanel2.add(deleteButton);
@@ -334,6 +327,7 @@ public class FTPGui extends javax.swing.JFrame implements Runnable {
 				jList1FocusLost(evt);
 			}
 		});
+		
 		jList1.addMouseListener(new java.awt.event.MouseAdapter() {
 			public void mouseClicked(java.awt.event.MouseEvent evt) {
 				jList1MouseClicked(evt);
@@ -362,10 +356,8 @@ public class FTPGui extends javax.swing.JFrame implements Runnable {
 
 		btnBanIp.setText("IP BAN");
 		btnBanIp.setEnabled(false);
-		btnBanIp.addActionListener(new java.awt.event.ActionListener() {
-			public void actionPerformed(java.awt.event.ActionEvent evt) {
-				banButonActionPerformed(evt);
-			}
+		btnBanIp.addActionListener((evt)->{
+			banButonActionPerformed(evt);
 		});
 
 		jPanel4.add(btnBanIp);
@@ -394,10 +386,8 @@ public class FTPGui extends javax.swing.JFrame implements Runnable {
 
 		removeBanButton.setText("Remove");
 		removeBanButton.setEnabled(false);
-		removeBanButton.addActionListener(new java.awt.event.ActionListener() {
-			public void actionPerformed(java.awt.event.ActionEvent evt) {
-				unbanButonActionPerformed(evt);
-			}
+		removeBanButton.addActionListener((evt)->{
+			unbanButonActionPerformed(evt);
 		});
 
 		jPanel5.add(removeBanButton);
@@ -410,20 +400,16 @@ public class FTPGui extends javax.swing.JFrame implements Runnable {
 
 		jMenu1.setText("FTP Server");
 		jMenuStart.setText("Start");
-		jMenuStart.addActionListener(new java.awt.event.ActionListener() {
-			public void actionPerformed(java.awt.event.ActionEvent evt) {
-				jMenuBaslatActionPerformed(evt);
-			}
+		jMenuStart.addActionListener((evt)->{
+			jMenuBaslatActionPerformed(evt);
 		});
 
 		jMenu1.add(jMenuStart);
 
 		jMenuStop.setText("Stop");
 		jMenuStop.setEnabled(false);
-		jMenuStop.addActionListener(new java.awt.event.ActionListener() {
-			public void actionPerformed(java.awt.event.ActionEvent evt) {
-				jMenuDurdurActionPerformed(evt);
-			}
+		jMenuStop.addActionListener((evt)->{
+			jMenuDurdurActionPerformed(evt);
 		});
 
 		jMenu1.add(jMenuStop);
@@ -431,10 +417,8 @@ public class FTPGui extends javax.swing.JFrame implements Runnable {
 		jMenu1.add(jSeparator1);
 
 		jMenuExit.setText("Exit");
-		jMenuExit.addActionListener(new java.awt.event.ActionListener() {
-			public void actionPerformed(java.awt.event.ActionEvent evt) {
-				jMenuCikisActionPerformed(evt);
-			}
+		jMenuExit.addActionListener((evt)->{
+			jMenuCikisActionPerformed(evt);
 		});
 
 		jMenu1.add(jMenuExit);
@@ -443,37 +427,29 @@ public class FTPGui extends javax.swing.JFrame implements Runnable {
 
 		jMenu2.setText("View");
 		jMenuItem1.setText("Users");
-		jMenuItem1.addActionListener(new java.awt.event.ActionListener() {
-			public void actionPerformed(java.awt.event.ActionEvent evt) {
-				jMenuItem1ActionPerformed(evt);
-			}
+		jMenuItem1.addActionListener((evt)->{
+			jMenuItem1ActionPerformed(evt);
 		});
 
 		jMenu2.add(jMenuItem1);
 
 		jMenuItem2.setText("Settings");
-		jMenuItem2.addActionListener(new java.awt.event.ActionListener() {
-			public void actionPerformed(java.awt.event.ActionEvent evt) {
-				jMenuItem2ActionPerformed(evt);
-			}
+		jMenuItem2.addActionListener((evt) -> {
+			jMenuItem2ActionPerformed(evt);
 		});
 
 		jMenu2.add(jMenuItem2);
 
 		jMenuItem3.setText("Connections");
-		jMenuItem3.addActionListener(new java.awt.event.ActionListener() {
-			public void actionPerformed(java.awt.event.ActionEvent evt) {
-				jMenuItem3ActionPerformed(evt);
-			}
+		jMenuItem3.addActionListener((evt) -> {
+			jMenuItem3ActionPerformed(evt);
 		});
 
 		jMenu2.add(jMenuItem3);
 
 		jMenuItem4.setText("Banned IP");
-		jMenuItem4.addActionListener(new java.awt.event.ActionListener() {
-			public void actionPerformed(java.awt.event.ActionEvent evt) {
-				jMenuItem4ActionPerformed(evt);
-			}
+		jMenuItem4.addActionListener((evt)->{
+			jMenuItem4ActionPerformed(evt);
 		});
 
 		jMenu2.add(jMenuItem4);
@@ -484,10 +460,8 @@ public class FTPGui extends javax.swing.JFrame implements Runnable {
 		buttonGroup2.add(jRadioButtonMenuItem1);
 		// jRadioButtonMenuItem1.setSelected(true);
 		jRadioButtonMenuItem1.setText("Java");
-		jRadioButtonMenuItem1.addActionListener(new java.awt.event.ActionListener() {
-			public void actionPerformed(java.awt.event.ActionEvent evt) {
-				jRadioButtonMenuItem1ActionPerformed(evt);
-			}
+		jRadioButtonMenuItem1.addActionListener((evt)->{
+			jRadioButtonMenuItem1ActionPerformed(evt);
 		});
 
 		jMenu4.add(jRadioButtonMenuItem1);
@@ -495,10 +469,8 @@ public class FTPGui extends javax.swing.JFrame implements Runnable {
 		buttonGroup2.add(jRadioButtonMenuItem2);
 		jRadioButtonMenuItem2.setSelected(true);
 		jRadioButtonMenuItem2.setText("Windows");
-		jRadioButtonMenuItem2.addActionListener(new java.awt.event.ActionListener() {
-			public void actionPerformed(java.awt.event.ActionEvent evt) {
-				jRadioButtonMenuItem2ActionPerformed(evt);
-			}
+		jRadioButtonMenuItem2.addActionListener((evt)->{
+			jRadioButtonMenuItem2ActionPerformed(evt);
 		});
 
 		jMenu4.add(jRadioButtonMenuItem2);
@@ -507,10 +479,8 @@ public class FTPGui extends javax.swing.JFrame implements Runnable {
 
 		jMenu3.setText("Hakk\u0131nda");
 		jMenuAbout.setText("Hakk\u0131nda");
-		jMenuAbout.addActionListener(new java.awt.event.ActionListener() {
-			public void actionPerformed(java.awt.event.ActionEvent evt) {
-				jMenuHakkindaActionPerformed(evt);
-			}
+		jMenuAbout.addActionListener((evt)->{
+			jMenuHakkindaActionPerformed(evt);
 		});
 
 		jMenu3.add(jMenuAbout);
@@ -936,7 +906,7 @@ public class FTPGui extends javax.swing.JFrame implements Runnable {
 				}
 				
 				
-				FtpConnection newConnection = new FtpConnection(userList, socket1, inetaddress);
+				FtpConnection newConnection = new FtpConnection(userList, socket1, inetaddress,getTimeOut());
 				ActiveFtpConnections.addConnection(newConnection);
 				(new Thread(newConnection)).start();
 			} while (true);
@@ -977,14 +947,7 @@ public class FTPGui extends javax.swing.JFrame implements Runnable {
 		downloadLabel.setText(s + "KB");// Kilobayt Cinsinden Toplam Download Miktar�n� yaz�yoruz
 	}
 
-	public static boolean isUnlimited() {
-		if (cmbTimeOut.getSelectedItem().equals("Limitsiz"))
-			return true;
-		else
-			return false;
-	}
-
-	public static int getTimeOut() {
+	public int getTimeOut() {
 		if (cmbTimeOut.getSelectedItem().equals("10 min"))
 			return 10 * 60000;
 		else if (cmbTimeOut.getSelectedItem().equals("20 min"))
@@ -999,12 +962,12 @@ public class FTPGui extends javax.swing.JFrame implements Runnable {
 
 	File root;
 	private boolean isServerStarted = false;
-	public static String PA = "";
+	public  static String PA = "";
 	private Thread serverThread;
 	private javax.swing.DefaultListModel<String> ipTable;
 	private javax.swing.DefaultListModel<String> timeTable;
 	private javax.swing.DefaultListModel<String> bannedIpTable;
-	public static ServerSocket serversocket;
+	public  ServerSocket serversocket;
 	// Variables declaration - do not modify//GEN-BEGIN:variables
 	private javax.swing.JButton btnStart;
 	private javax.swing.JButton btnStop;
@@ -1072,7 +1035,7 @@ public class FTPGui extends javax.swing.JFrame implements Runnable {
 	private static javax.swing.JLabel uploadLabel;
 	private javax.swing.JLabel urlLabel;
 	private javax.swing.JCheckBox checkWritePermission;
-	private static javax.swing.JComboBox<String> cmbTimeOut;
+	private javax.swing.JComboBox<String> cmbTimeOut;
 	
 	private List<User> userList;
 }
