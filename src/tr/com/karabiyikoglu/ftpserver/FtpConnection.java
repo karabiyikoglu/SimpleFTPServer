@@ -12,10 +12,12 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Calendar;
+import java.util.List;
 
 public class FtpConnection implements Runnable {
-	public FtpConnection(Users userArray[], Socket socket, InetAddress inetaddress) throws Exception {
-		this.users = userArray;
+	
+	public FtpConnection(List<User> userList, Socket socket, InetAddress inetaddress) throws Exception {
+		this.users = userList;
 		stringBuffer = new StringBuffer(256);
 		dataBuffer = new byte[512];
 		calendar = Calendar.getInstance();
@@ -53,7 +55,6 @@ public class FtpConnection implements Runnable {
 			inputStreamReader = new InputStreamReader(socket.getInputStream(), "ISO-8859-9");
 			printStream = new PrintStream(socket.getOutputStream(), true, "ISO-8859-9");
 			printStream.print("220 IK Ftp Server Hosgeldiniz .\r\n");
-			
 			
 			boolean isCommandReceived;
 			
@@ -97,21 +98,22 @@ public class FtpConnection implements Runnable {
 					continue;
 				}
 				if (receivedCommand.startsWith("USER")) {//Authentication username.
-					int i = 0;
 					userOk = false;
-					while (i < users.length) {
-						if (receivedCommand.endsWith(users[i].getUsername())) {
-							java.io.File ad = new java.io.File(users[i].getRootFolder());
+					loggedUser = null;
+					for(User user : users) {
+						if(receivedCommand.endsWith(user.getUsername())) {
+							java.io.File ad = new java.io.File(user.getRootFolder());
 							rootFolder = currentDirectory = ad;
 							rootPath = ad.getCanonicalPath();
 							rootLength = rootPath.length();
-							readOnly = (!users[i].isWritePermission());
+							readOnly = (!user.isWritePermission());
 							userOk = true;
-							passwordIndex = i;
+							loggedUser = user;
 							break;
 						}
-						i++;
 					}
+					
+					
 					if (userOk) {
 
 						printStream.print("331 Username accepted\r\n");
@@ -123,7 +125,7 @@ public class FtpConnection implements Runnable {
 
 				}
 				if (receivedCommand.startsWith("PASS")) {///Authentication password.
-					if (receivedCommand.endsWith(users[passwordIndex].getPassword())) {
+					if (loggedUser != null && receivedCommand.endsWith(loggedUser.getPassword())) {
 						printStream.print("230 Password accepted. Login OK\r\n");
 						loginOK = true;
 						continue;
@@ -131,7 +133,7 @@ public class FtpConnection implements Runnable {
 				}
 				if (receivedCommand.startsWith("QUIT")) {///Disconnect
 					printStream.print("221 Bye.\r\n");
-					FTPGui.connectionList.remove(this);
+					ActiveFtpConnections.removeConnection(this);
 					break;
 				}
 				if (!loginOK) {
@@ -428,6 +430,6 @@ public class FtpConnection implements Runnable {
 	File oldFile;
 	boolean loginOK;
 	boolean userOk;
-	Users users[];
-	int passwordIndex = 0;
+	List<User> users;
+	private User loggedUser = null;
 }

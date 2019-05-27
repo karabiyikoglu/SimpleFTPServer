@@ -13,12 +13,12 @@ package tr.com.karabiyikoglu.ftpserver;
  *
  * @author ismail1
  */
-public class Users {
+public class User {
     
     /** Creates a new instance of Users */
-    public Users() {
+    public User() {
     }
-    public Users(String username,String password,String rootFolder,String writePermission){
+    public User(String username,String password,String rootFolder,String writePermission){
         this.username = username;
         this.password = password;
         this.rootFolder = rootFolder;

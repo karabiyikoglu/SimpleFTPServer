@@ -20,7 +20,6 @@ import java.util.Vector;
 
 public class FTPGui extends javax.swing.JFrame implements Runnable {
 	
-	public static List<FtpConnection> connectionList = new ArrayList<>();
 
 	/**
 	 * 
@@ -29,9 +28,15 @@ public class FTPGui extends javax.swing.JFrame implements Runnable {
 
 	/** FTP Gui Formu Olu�turuluyor */
 	public FTPGui() {
+		
 		initComponents();
+		
 		root = new File(System.getProperty("user.dir"));
-		loadUsers();
+		
+		userList = getUsersFromFile();
+		
+		fillCmbUserList();
+		
 		loadBannedIpList();
 	}
 
@@ -56,10 +61,10 @@ public class FTPGui extends javax.swing.JFrame implements Runnable {
 		downloadLabel = new javax.swing.JLabel();
 		jSeparator2 = new javax.swing.JSeparator();
 		jPanel2 = new javax.swing.JPanel();
-		userList = new javax.swing.JComboBox<String>();
+		cmbUserList = new javax.swing.JComboBox<String>();
 		txtUsername = new javax.swing.JTextField();
-		txtPassword = new javax.swing.JTextField();
-		txtPassword2 = new javax.swing.JTextField();
+		txtPassword = new javax.swing.JPasswordField();
+		txtPassword2 = new javax.swing.JPasswordField();
 		txtRootFolder = new javax.swing.JTextField();
 		btnBrowse = new javax.swing.JButton();
 		checkWritePermission = new javax.swing.JCheckBox();
@@ -210,14 +215,14 @@ public class FTPGui extends javax.swing.JFrame implements Runnable {
 		jPanel2.setLayout(null);
 
 		jPanel2.setToolTipText("Users");
-		userList.addItemListener(new java.awt.event.ItemListener() {
+		cmbUserList.addItemListener(new java.awt.event.ItemListener() {
 			public void itemStateChanged(java.awt.event.ItemEvent evt) {
 				userListItemStateChanged(evt);
 			}
 		});
 
-		jPanel2.add(userList);
-		userList.setBounds(180, 50, 130, 22);
+		jPanel2.add(cmbUserList);
+		cmbUserList.setBounds(180, 50, 130, 22);
 
 		jPanel2.add(txtUsername);
 		txtUsername.setBounds(150, 90, 160, 20);
@@ -654,37 +659,28 @@ public class FTPGui extends javax.swing.JFrame implements Runnable {
 			btnBanIp.setEnabled(true);
 
 	}// GEN-LAST:event_jList1MouseClicked
+	
+	private String generateLineFromUser(User user) {
+		StringBuilder strBuilder = new StringBuilder();
+		if(user != null) {
+			strBuilder.append(user.getUsername()).append("~~").append(user.getPassword()).append("~~").append(user.getRootFolder()).append("~~").append(user.isWritePermission());
+		}
+		return strBuilder.toString();
+	}
 
 	private void deleteButonActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_silButonActionPerformed
-		Users[] temp = new Users[getUserCount()];
-		try {
-			int j = 0;
-			FileReader fileReader = new FileReader(IConstants.FILE_USERS);
-			BufferedReader bufReader = new BufferedReader(fileReader);
-			String line = bufReader.readLine();
-			while (line != null) {
-				StringTokenizer input = new StringTokenizer(line, ",");
-				temp[j++] = new Users(input.nextToken(), input.nextToken(), input.nextToken(), input.nextToken());
-				line = bufReader.readLine();
-			}
-			bufReader.close();
-		}
-
-		catch (FileNotFoundException excep) {
-			System.out.println("File not found ...");
-		} catch (IOException excep) {
-			System.out.println("Bir \"exception\" olustu ...");
-		}
 		try {
 			FileOutputStream fileOutputStream = new FileOutputStream(IConstants.FILE_USERS);
 			PrintWriter printWriter = new PrintWriter(fileOutputStream);
-			for (int i = 0; i < temp.length; i++) {
-				if (temp[i].getUsername().equals(userList.getSelectedItem().toString()))
-					continue;
-				printWriter.println(temp[i].getUsername() + "," + temp[i].getPassword() + "," + temp[i].getRootFolder()
-						+ "," + temp[i].isWritePermission());
+			if(userList != null) {
+				for(User user : userList) {
+					if(user.getUsername().equals(cmbUserList.getSelectedItem().toString())) {
+						userList.remove(user);
+						continue;
+					}
+					printWriter.println(generateLineFromUser(user));
+				}
 			}
-
 			printWriter.close();
 		}
 
@@ -692,17 +688,17 @@ public class FTPGui extends javax.swing.JFrame implements Runnable {
 			System.out.println("File not found ...");
 		}
 
-		userList.removeItemAt(userList.getSelectedIndex());
+		cmbUserList.removeItemAt(cmbUserList.getSelectedIndex());
 	}// GEN-LAST:event_silButonActionPerformed
 
 	private void saveActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_kaydetActionPerformed
 		String username = "", password = "", passwordConfirm = "", fileName = "";
-		boolean izin = false, isNewRecord = true;
+		boolean writePermission = false, isNewRecord = true;
 		username = txtUsername.getText();
 		password = txtPassword.getText();
 		passwordConfirm = txtPassword2.getText();
 		fileName = txtRootFolder.getText();
-		izin = checkWritePermission.isSelected();
+		writePermission = checkWritePermission.isSelected();
 		if (username.equals("")) {
 			javax.swing.JOptionPane.showMessageDialog(this, "Enter username", "Error", 0);
 		} else if (password.equals("")) {
@@ -710,43 +706,29 @@ public class FTPGui extends javax.swing.JFrame implements Runnable {
 		} else if (!password.equals(passwordConfirm.toString())) {
 			javax.swing.JOptionPane.showMessageDialog(this, "Password not matched", "Error", 0);
 		} else {
-			Users[] temp = new Users[getUserCount()];
-			try {
-				int j = 0;
-				FileReader fileReader = new FileReader(IConstants.FILE_USERS);
-				BufferedReader bufReader = new BufferedReader(fileReader);
-				String line = bufReader.readLine();
-				while (line != null) {
-					StringTokenizer input = new StringTokenizer(line, ",");
-					temp[j++] = new Users(input.nextToken(), input.nextToken(), input.nextToken(), input.nextToken());
-					line = bufReader.readLine();
-				}
-				bufReader.close();
-			}
-
-			catch (FileNotFoundException excep) {
-				System.out.println("File not found ...");
-			} catch (IOException excep) {
-				System.out.println("Bir \"exception\" olustu ...");
-			}
 			try {
 				FileOutputStream fileOutputStream = new FileOutputStream(IConstants.FILE_USERS);
 				PrintWriter printWriter = new PrintWriter(fileOutputStream);
-				for (int i = 0; i < temp.length; i++) {
-					if (temp[i].getUsername().equals(username)) {
-						printWriter.println(username + "," + password + "," + fileName + "," + izin);
+				if(userList == null) {
+					userList = new ArrayList<User>();
+				}
+				for(User user : userList) {
+					if(user.getUsername().equals(username)) {
+						printWriter.println(generateLineFromUser(new User(username, password, fileName, String.valueOf(writePermission))));
 						isNewRecord = false;
-					} else {
-						printWriter.println(temp[i].getUsername() + "," + temp[i].getPassword() + ","
-								+ temp[i].getRootFolder() + "," + temp[i].isWritePermission());
-
+					}else {
+						printWriter.println(generateLineFromUser(user));
 					}
 				}
+				
 				if (isNewRecord) {
-					printWriter.println(username + "," + password + "," + fileName + "," + izin);
-					userList.addItem(username);
+					User user = new User(username, password, fileName, String.valueOf(writePermission));
+					userList.add(user);
+					printWriter.println(generateLineFromUser(user));
+					cmbUserList.addItem(username);
 				}
 				printWriter.close();
+				fileOutputStream.close();
 				javax.swing.JOptionPane.showMessageDialog(this, "Save successfull", "Bilgi", 1);
 				txtPassword.setText("");
 				txtPassword2.setText("");
@@ -755,32 +737,25 @@ public class FTPGui extends javax.swing.JFrame implements Runnable {
 
 			catch (FileNotFoundException excep) {
 				System.out.println("File not found ...");
+			} catch (IOException e) {
+				e.printStackTrace();
 			}
 		}
 	}// GEN-LAST:event_kaydetActionPerformed
 
 	private void userListItemStateChanged(java.awt.event.ItemEvent evt) {// GEN-FIRST:event_kul_listesiItemStateChanged
 		try {
-			String username = "", temp = "";
-			temp = userList.getSelectedItem().toString();
-			FileReader fileReader = new FileReader(IConstants.FILE_USERS);
-			BufferedReader bufReader = new BufferedReader(fileReader);
-			String line = bufReader.readLine();
-			while (line != null) {
-				StringTokenizer input = new StringTokenizer(line, ",");
-				username = input.nextToken();
-				if (username.equals(temp.toString())) {
-					txtUsername.setText(username);
-					input.nextToken();
-					txtRootFolder.setText(input.nextToken());
-					if (input.nextToken().equals("true"))
-						checkWritePermission.setSelected(true);
-					else
-						checkWritePermission.setSelected(false);
+			String username = cmbUserList.getSelectedItem().toString();
+			if(userList != null) {
+				for(User user : userList) {
+					if(user.getUsername().equals(username)) {
+						txtUsername.setText(username);
+						txtRootFolder.setText(user.getRootFolder());
+						checkWritePermission.setSelected(user.isWritePermission());
+						break;
+					}
 				}
-				line = bufReader.readLine();
 			}
-			bufReader.close();
 		} catch (Exception hata) {
 			System.out.println(hata);
 		}
@@ -842,34 +817,17 @@ public class FTPGui extends javax.swing.JFrame implements Runnable {
 		internetmi.setEnabled(true);
 		urlLabel.setText("Stopped");
 		serverThread = null;
-		for(FtpConnection ftpConnection : connectionList) {
-			ftpConnection.stopConnection();
-		}
-		connectionList.removeAll(connectionList);
+		
+		ActiveFtpConnections.stopAll();
 	}
 
-	public void loadUsers() {
-		userList.removeAllItems();
-		try {
-			String user = "";
-			FileReader fileReader = new FileReader(IConstants.FILE_USERS);
-			BufferedReader bufReader = new BufferedReader(fileReader);
-			String line = bufReader.readLine();
-			while (line != null) {
-				StringTokenizer input = new StringTokenizer(line, ",");
-				user = input.nextToken();
-				userList.addItem(user);
-				line = bufReader.readLine();
+	public void fillCmbUserList() {
+		cmbUserList.removeAllItems();
+		if(userList != null) {
+			for(User user : userList) {
+				cmbUserList.addItem(user.getUsername());
 			}
-			bufReader.close();
 		}
-
-		catch (FileNotFoundException excep) {
-			System.out.println("File not found ...");
-		} catch (IOException excep) {
-			System.out.println("Bir \"exception\" olustu ...");
-		}
-		isLoaded = false;
 	}
 
 	public void loadBannedIpList() {
@@ -892,28 +850,6 @@ public class FTPGui extends javax.swing.JFrame implements Runnable {
 		}
 	}
 
-	public int getUserCount() {
-		int sayi = 0;
-		try {
-
-			FileReader fileReader = new FileReader(IConstants.FILE_USERS);
-			BufferedReader bufReader = new BufferedReader(fileReader);
-			String line = bufReader.readLine();
-			while (line != null) {
-				sayi++;
-				line = bufReader.readLine();
-			}
-			bufReader.close();
-		}
-
-		catch (FileNotFoundException excep) {
-			System.out.println("Bu isimde bir dosya bulunamadi ...");
-		} catch (IOException excep) {
-			System.out.println("Bir \"exception\" olustu ...");
-		}
-		return sayi;
-	}
-
 	private void startActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_BaslatActionPerformed
 		startServer();
 	}// GEN-LAST:event_BaslatActionPerformed
@@ -929,10 +865,37 @@ public class FTPGui extends javax.swing.JFrame implements Runnable {
 				socket.close();
 			}
 		} catch (Exception hata) {
-			javax.swing.JOptionPane.showMessageDialog(this, hata.getMessage(), "�K Ftp Server", 0);
+			javax.swing.JOptionPane.showMessageDialog(this, hata.getMessage(), "İK Ftp Server", 0);
 		}
 
 		return adres;
+	}
+	
+	public List<User> getUsersFromFile() {
+		List<User> users = new ArrayList<User>();
+		try {
+			FileReader fileReader = new FileReader(IConstants.FILE_USERS);
+			BufferedReader bufReader = new BufferedReader(fileReader);
+			String line = bufReader.readLine();
+			while (line != null) {
+				StringTokenizer input = new StringTokenizer(line, "~~");
+				String username = input.nextToken();
+				if (username.equals("anonymous")) {
+					input.nextToken();
+					users.add(new User(username, "", input.nextToken(), input.nextToken()));
+				} else {
+					users.add(new User(username, input.nextToken(), input.nextToken(),input.nextToken()));
+				}
+				line = bufReader.readLine();
+			}
+			bufReader.close();
+			fileReader.close();
+		}catch (FileNotFoundException excep) {
+			System.out.println("Bu isimde bir dosya bulunamadi ...");
+		} catch (IOException excep) {
+			System.out.println("Bir \"exception\" olustu ...");
+		}
+		return users;
 	}
 
 	public void run() {
@@ -961,40 +924,20 @@ public class FTPGui extends javax.swing.JFrame implements Runnable {
 				stringbuffer.append("/");
 			urlLabel.setText(stringbuffer.toString());
 			stringbuffer = null;
+
 			do {
 				Socket socket1 = serversocket.accept();
+				
 				addIpToList(socket1);
+				
 				if (bannedIpTable.contains(socket1.getInetAddress().toString())) {
 					socket1.close();
 					continue;
 				}
-				Users users[] = new Users[getUserCount()];
-				try {
-					int j = 0;
-					FileReader fileReader = new FileReader(IConstants.FILE_USERS);
-					BufferedReader bufReader = new BufferedReader(fileReader);
-					String line = bufReader.readLine();
-					while (line != null) {
-						StringTokenizer input = new StringTokenizer(line, ",");
-						String username = input.nextToken();
-						if (username.equals("anonymous")) {
-							input.nextToken();
-							users[j++] = new Users(username, "", input.nextToken(), input.nextToken());
-						} else
-							users[j++] = new Users(username, input.nextToken(), input.nextToken(),
-									input.nextToken());
-						line = bufReader.readLine();
-					}
-					bufReader.close();
-				}
-
-				catch (FileNotFoundException excep) {
-					System.out.println("Bu isimde bir dosya bulunamadi ...");
-				} catch (IOException excep) {
-					System.out.println("Bir \"exception\" olustu ...");
-				}
-				FtpConnection newConnection = new FtpConnection(users, socket1, inetaddress);
-				connectionList.add(newConnection);
+				
+				
+				FtpConnection newConnection = new FtpConnection(userList, socket1, inetaddress);
+				ActiveFtpConnections.addConnection(newConnection);
 				(new Thread(newConnection)).start();
 			} while (true);
 		}catch(BindException exception) {
@@ -1058,7 +1001,6 @@ public class FTPGui extends javax.swing.JFrame implements Runnable {
 	private boolean isServerStarted = false;
 	public static String PA = "";
 	private Thread serverThread;
-	boolean isLoaded = true;
 	private javax.swing.DefaultListModel<String> ipTable;
 	private javax.swing.DefaultListModel<String> timeTable;
 	private javax.swing.DefaultListModel<String> bannedIpTable;
@@ -1119,7 +1061,7 @@ public class FTPGui extends javax.swing.JFrame implements Runnable {
 	private javax.swing.JTabbedPane jTabbedPane1;
 	private javax.swing.JButton saveButton;
 	private javax.swing.JTextField txtRootFolder;
-	private javax.swing.JComboBox<String> userList;
+	private javax.swing.JComboBox<String> cmbUserList;
 	private javax.swing.JTextField txtUsername;
 	private javax.swing.JRadioButton isLocalRadio;
 	private javax.swing.JTextField txtPortNumber;
@@ -1131,6 +1073,6 @@ public class FTPGui extends javax.swing.JFrame implements Runnable {
 	private javax.swing.JLabel urlLabel;
 	private javax.swing.JCheckBox checkWritePermission;
 	private static javax.swing.JComboBox<String> cmbTimeOut;
-	// End of variables declaration//GEN-END:variables
-
+	
+	private List<User> userList;
 }
