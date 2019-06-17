@@ -18,6 +18,8 @@ import java.util.List;
 import java.util.StringTokenizer;
 import java.util.Vector;
 
+import tr.com.karabiyikoglu.ftpserver.util.ConsoleLogger;
+
 public class FTPGui extends javax.swing.JFrame implements Runnable {
 	
 
@@ -570,24 +572,25 @@ public class FTPGui extends javax.swing.JFrame implements Runnable {
 			bufReader.close();
 			fileReader.close();
 		}catch (FileNotFoundException excep) {
-			System.out.println("File not found ...");
+			ConsoleLogger.error("File not found ...");
 		} catch (IOException excep) {
-			System.out.println("Bir \"exception\" olustu ...");
+			ConsoleLogger.error("Bir \"exception\" olustu ...");
 		}
 		ipBanList.remove(lstBannedIP.getSelectedIndex());
 		try {
 			FileOutputStream fileOutputStream = new FileOutputStream(IConstants.FILE_IP_BAN);
 			PrintWriter printWriter = new PrintWriter(fileOutputStream);
-			for (int i = 0; i < ipBanList.size(); i++)
+			for (int i = 0; i < ipBanList.size(); i++) {
 				printWriter.println(ipBanList.get(i).toString());
+			}
 			printWriter.close();
 			fileOutputStream.close();
 		}
 
 		catch (FileNotFoundException excep) {
-			System.out.println("File not found ...");
+			ConsoleLogger.error("File not found ...");
 		} catch (IOException excep) {
-			System.out.println("Bir \"exception\" olustu ...");
+			ConsoleLogger.error("Bir \"exception\" olustu ...");
 		}
 		bannedIpTable.remove(lstBannedIP.getSelectedIndex());
 
@@ -610,7 +613,7 @@ public class FTPGui extends javax.swing.JFrame implements Runnable {
 			}
 
 			catch (FileNotFoundException excep) {
-				System.out.println("File not found ...");
+				ConsoleLogger.error("File not found ...");
 			}
 		}
 
@@ -642,20 +645,23 @@ public class FTPGui extends javax.swing.JFrame implements Runnable {
 		try {
 			FileOutputStream fileOutputStream = new FileOutputStream(IConstants.FILE_USERS);
 			PrintWriter printWriter = new PrintWriter(fileOutputStream);
+			List<User> deleteList = new ArrayList<>();
 			if(userList != null) {
-				for(User user : userList) {
-					if(user.getUsername().equals(cmbUserList.getSelectedItem().toString())) {
-						userList.remove(user);
-						continue;
+				String selectedUser = cmbUserList.getSelectedItem().toString();
+				userList.forEach(user -> {
+					if(user.getUsername().equals(selectedUser)) {
+						deleteList.add(user);
+						return;
 					}
 					printWriter.println(generateLineFromUser(user));
-				}
+				});
 			}
+			userList.removeAll(deleteList);
 			printWriter.close();
 		}
 
 		catch (FileNotFoundException excep) {
-			System.out.println("File not found ...");
+			ConsoleLogger.error("File not found ...");
 		}
 
 		cmbUserList.removeItemAt(cmbUserList.getSelectedIndex());
@@ -682,6 +688,7 @@ public class FTPGui extends javax.swing.JFrame implements Runnable {
 				if(userList == null) {
 					userList = new ArrayList<User>();
 				}
+				
 				for(User user : userList) {
 					if(user.getUsername().equals(username)) {
 						printWriter.println(generateLineFromUser(new User(username, password, fileName, String.valueOf(writePermission))));
@@ -706,7 +713,7 @@ public class FTPGui extends javax.swing.JFrame implements Runnable {
 			}
 
 			catch (FileNotFoundException excep) {
-				System.out.println("File not found ...");
+				ConsoleLogger.error("File not found ...");
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -727,7 +734,7 @@ public class FTPGui extends javax.swing.JFrame implements Runnable {
 				}
 			}
 		} catch (Exception hata) {
-			System.out.println(hata);
+			ConsoleLogger.error(hata.getMessage());
 		}
 	}// GEN-LAST:event_kul_listesiItemStateChanged
 
@@ -775,7 +782,7 @@ public class FTPGui extends javax.swing.JFrame implements Runnable {
 				serversocket.close();
 			}
 		} catch (Exception error) {
-			System.out.println(error);
+			ConsoleLogger.error(error.getMessage());
 		}
 		btnStart.setEnabled(true);
 		btnStop.setEnabled(false);
@@ -814,9 +821,9 @@ public class FTPGui extends javax.swing.JFrame implements Runnable {
 		}
 
 		catch (FileNotFoundException excep) {
-			System.out.println("File not found ...");
+			ConsoleLogger.error("File not found ...");
 		} catch (IOException excep) {
-			System.out.println("Bir \"exception\" olustu ...");
+			ConsoleLogger.error("Bir \"exception\" olustu ...");
 		}
 	}
 
@@ -861,9 +868,9 @@ public class FTPGui extends javax.swing.JFrame implements Runnable {
 			bufReader.close();
 			fileReader.close();
 		}catch (FileNotFoundException excep) {
-			System.out.println("Bu isimde bir dosya bulunamadi ...");
+			ConsoleLogger.error("Bu isimde bir dosya bulunamadi ...");
 		} catch (IOException excep) {
-			System.out.println("Bir \"exception\" olustu ...");
+			ConsoleLogger.error("Bir \"exception\" olustu ...");
 		}
 		return users;
 	}

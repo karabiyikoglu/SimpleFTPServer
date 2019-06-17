@@ -1,3 +1,2 @@
 ismail~~test~~/Users/ismail/eclipse~~false
-Deneme~~123~~/Users/ismail/eclipse~~false
 Kerem~~qwerty~~/Users/ismail/eclipse/workspace/TestProject~~true
